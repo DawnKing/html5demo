@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>DrawLine</title>
+  <style>
+    #line {
+      position: absolute;
+      top: 0px;
+      left: 0px;
+      width: 255px;
+      height: 255px;
+      border:1px solid red;
+    }
+    #btn {
+      position: absolute;
+      left: 255px;
+    }
+  </style>
+
+  <script>
+    function drawLine(strategyName) {
+      var canvas = document.getElementById("canvasLine");
+      var context = canvas.getContext("2d");
+      var circle1 = document.getElementById("c1");
+      var circle2 = document.getElementById("c2");
+
+      var x1 = circle1.offsetLeft;
+      var y1 = circle1.offsetTop;
+      var x2 = circle2.offsetLeft;
+      var y2 = circle2.offsetTop;
+      var width = canvas.attributes.width.value;
+      var height = canvas.attributes.height.value;
+
+      context.fillStyle = "rgb(255, 255, 255)";
+      context.fillRect(0, 0, width, height);
+      var imgData = context.getImageData(0, 0 ,width, height);
+      var pixels = imgData.data;
+
+      pixels = drawStrategy[strategyName]["get"](x1, y1, x2, y2, width, height, pixels);
+      context.putImageData(imgData, 0, 0);
+    }
+
+    function drawPixel(x, y, width, pixels) {
+      index = (x + y * width) * 4;
+      drawPixel2(index, pixels);
+    }
+
+    function drawPixel2(index, pixels) {
+      pixels[index] = 0;  // R
+      pixels[index + 1] = 0;  // G
+      pixels[index + 2] = 0;  // B
+      pixels[index + 3] = 255;  // A
+    }
+
+    var drawStrategy = {
+      dda : {
+        get : function(x1, y1, x2, y2, width, height, pixels) {
+          var k = (y1 - y2) / (x1 - x2);
+          var b = y1 - k * x1;
+          var index = 0;
+          if (k >= -1 && k <= 1) {
+            if (x1 > x2) {
+              x2 = [x1, x1 = x2][0];
+              y2 = [y1, y1 = y2][0];
+            }
+
+            var y = y1;
+            for (x = x1; x < x2; x++) {
+              index = (x + Math.floor(y + 0.5) * width) * 4;
+              drawPixel2(index, pixels);
+              y += k;
+            }
+          } else {
+            if (y1 > y2) {
+              x2 = [x1, x1 = x2][0];
+              y2 = [y1, y1 = y2][0];
+            }
+
+            if (x1 - x2 == 0)
+              k = 0;
+            else
+              k = 1.0 / k;
+            var x = x1;
+            for (y = y1; y < y2; y++) {
+              index = (Math.floor(x + 0.5) + y * width) * 4;
+              drawPixel2(index, pixels);
+              x += k;
+            }
+          }
+        }
+      },
+      midpoint : {
+        get : function(x1, y1, x2, y2, width, height, pixels) {
+          var a, b, k, x, y, d, d1, d2;
+          if (x1 > x2) {
+            x2 = [x1, x1 = x2][0];
+            y2 = [y1, y1 = y2][0];
+          }
+          a = y1 - y2;
+          b = -(x1 - x2);
+
+          if (b == 0)
+            k = (y1 < y2) ? 2 : -2; // In order to draw a vertical line.
+          else
+            k = a / -b;
+
+          x = x1;
+          y = y1;
+          drawPixel(x, y, width, pixels);
+
+          if (0 <= k && k <= 1) {
+            d = 2 * a + b;
+            d1 = 2 * a;
+            d2 = 2 * (a + b);
+
+            while (x < x2) {
+              x++;
+              if (d <= 0) {
+                y++;
+                d += d2;
+              } else {
+                d += d1;
+              }
+              drawPixel(x, y, width, pixels);
+            }
+          } else if (-1 <= k && k <= 0) {
+            d = 2 * a - b;
+            d1 = 2 * (a - b);
+            d2 = 2 * a;
+
+            while (x < x2) {
+              x++;
+              if (d > 0) {
+                y--;
+                d += d1;
+              } else {
+                d += d2;
+              }
+              drawPixel(x, y, width, pixels);
+            }
+          } else if (k > 1) {
+            d = a + 2 * b;
+            d1 = 2 * (a + b);
+            d2 = 2 * b;
+
+            while (y < y2) {
+              y++;
+              if (d > 0) {
+                x++;
+                d += d1;
+              }
+              else {
+                d += d2;
+              }
+              drawPixel(x, y, width, pixels);
+            }
+          } else if (k <= -1) {
+            d = a - 2 * b;
+            d1 = -2 * b;
+            d2 = 2 * (a - b);
+
+            while (y > y2) {
+              y--;
+              if (d <= 0) {
+                x++;
+                d += d2;
+              } else {
+                d += d1;
+              }
+              drawPixel(x, y, width, pixels);
+            }
+          }
+        }
+      },
+      bresenham : {
+        get : function(x1, y1, x2, y2, width, height, pixels) {
+          var steep = Math.abs(y2 - y1) > Math.abs(x2 - x1);
+          if (steep) {
+            y1 = [x1, x1 = y1][0];
+            y2 = [x2, x2 = y2][0];
+          }
+          if (x1 > x2) {
+            x2 = [x1, x1 = x2][0];
+            y2 = [y1, y1 = y2][0];
+          }
+          var deltaX = x2 - x1;
+          var deltaY = Math.abs(y2 - y1);
+          var error = deltaX / 2;
+          var yStep = y1 < y2 ? 1 : -1;
+          var y = y1;
+          for (var x = x1; x < x2; x++) {
+            if (steep)
+              drawPixel(y, x, width, pixels);
+            else
+              drawPixel(x, y, width, pixels);
+            error -= deltaY;
+            if (error < 0) {
+              y += yStep;
+              error += deltaX;
+            }
+          }
+        }
+      }
+    };
+
+    function drawCircle(idName) {
+      var c = document.getElementById(idName);
+      var size = 10;
+      c.width = size;
+      c.height = size;
+      var cxt = c.getContext("2d");
+      cxt.fillStyle = "#FF0000";
+      cxt.fillRect(0, 0, size, size);
+    }
+
+    function onDragOver(ev) {
+      ev.preventDefault();
+    }
+
+    function onDragStart(ev) {
+      ev.dataTransfer.setData("Text", ev.target.id);
+    }
+
+    function onDrop(ev) {
+      ev.preventDefault();
+      var data = ev.dataTransfer.getData("Text");
+      var c = document.getElementById(data);
+      c.style.left = event.clientX + 'px';
+      c.style.top = event.clientY + 'px';
+    }
+  </script>
+
+</head>
+<body>
+
+<div id="line" ondrop="onDrop(event)" ondragover="onDragOver(event)">
+  <canvas id="canvasLine" width="255" height="255"></canvas>
+
+  <canvas id="c1" width="10" height="10" draggable="true" ondragstart="onDragStart(event)"
+          style="position: absolute;top: 50px;left: 100px;">
+    <script>drawCircle("c1");</script>
+  </canvas>
+
+  <canvas id="c2" draggable="true" ondragstart="onDragStart(event)"
+          style="position: absolute;top: 200px;left: 100px;">
+    <script>drawCircle("c2");</script>
+  </canvas>
+</div>
+
+<div id="btn">
+  <button onclick="drawLine('dda')">RunDDA</button>
+  <button onclick="drawLine('midpoint')">RunMidPoint</button>
+  <button onclick="drawLine('bresenham')">RunBresenham</button>
+</div>
+
+</body>
+</html>

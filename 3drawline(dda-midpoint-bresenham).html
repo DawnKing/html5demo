@@ -4,103 +4,95 @@
   <meta charset="UTF-8">
   <title>DrawLine</title>
   <style>
-    #line {
-      position: absolute;
-      top: 0px;
-      left: 0px;
-      width: 255px;
-      height: 255px;
-      border:1px solid red;
-    }
-    #btn {
-      position: absolute;
-      left: 255px;
-    }
+  #line {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 255px;
+    height: 255px;
+    border:1px solid red;
+  }
+  #btn {
+    position: absolute;
+    left: 255px;
+  }
   </style>
 
+  <script type="text/javascript" src="utils.js"></script>
+
   <script>
-    function drawLine(strategyName) {
-      var canvas = document.getElementById("canvasLine");
-      var context = canvas.getContext("2d");
-      var circle1 = document.getElementById("c1");
-      var circle2 = document.getElementById("c2");
+  function drawLine(strategyName) {
+    var canvas = document.getElementById("canvasLine");
+    var context = canvas.getContext("2d");
+    var circle1 = document.getElementById("c1");
+    var circle2 = document.getElementById("c2");
 
-      var x1 = circle1.offsetLeft;
-      var y1 = circle1.offsetTop;
-      var x2 = circle2.offsetLeft;
-      var y2 = circle2.offsetTop;
-      var width = canvas.attributes.width.value;
-      var height = canvas.attributes.height.value;
+    var x1 = circle1.offsetLeft;
+    var y1 = circle1.offsetTop;
+    var x2 = circle2.offsetLeft;
+    var y2 = circle2.offsetTop;
+    var width = canvas.attributes.width.value;
+    var height = canvas.attributes.height.value;
 
-      context.fillStyle = "rgb(255, 255, 255)";
-      context.fillRect(0, 0, width, height);
-      var imgData = context.getImageData(0, 0 ,width, height);
-      var pixels = imgData.data;
+    // reset all stage color
+    context.fillStyle = "rgb(255, 255, 255)";
+    context.fillRect(0, 0, width, height);
+    var imgData = context.getImageData(0, 0 ,width, height);
+    var pixels = imgData.data;
 
-      pixels = drawStrategy[strategyName]["get"](x1, y1, x2, y2, width, height, pixels);
-      context.putImageData(imgData, 0, 0);
-    }
+    drawStrategy[strategyName]["get"](x1, y1, x2, y2, width, height, pixels);
+    context.putImageData(imgData, 0, 0);
+  }
 
-    function drawPixel(x, y, width, pixels) {
-      index = (x + y * width) * 4;
-      drawPixel2(index, pixels);
-    }
 
-    function drawPixel2(index, pixels) {
-      pixels[index] = 0;  // R
-      pixels[index + 1] = 0;  // G
-      pixels[index + 2] = 0;  // B
-      pixels[index + 3] = 255;  // A
-    }
-
-    var drawStrategy = {
-      dda : {
-        get : function(x1, y1, x2, y2, width, height, pixels) {
-          var k = (y1 - y2) / (x1 - x2);
-          var b = y1 - k * x1;
-          var index = 0;
-          if (k >= -1 && k <= 1) {
-            if (x1 > x2) {
-              x2 = [x1, x1 = x2][0];
-              y2 = [y1, y1 = y2][0];
-            }
-
-            var y = y1;
-            for (x = x1; x < x2; x++) {
-              index = (x + Math.floor(y + 0.5) * width) * 4;
-              drawPixel2(index, pixels);
-              y += k;
-            }
-          } else {
-            if (y1 > y2) {
-              x2 = [x1, x1 = x2][0];
-              y2 = [y1, y1 = y2][0];
-            }
-
-            if (x1 - x2 == 0)
-              k = 0;
-            else
-              k = 1.0 / k;
-            var x = x1;
-            for (y = y1; y < y2; y++) {
-              index = (Math.floor(x + 0.5) + y * width) * 4;
-              drawPixel2(index, pixels);
-              x += k;
-            }
-          }
-        }
-      },
-      midpoint : {
-        get : function(x1, y1, x2, y2, width, height, pixels) {
-          var a, b, k, x, y, d, d1, d2;
+  var drawStrategy = {
+    dda : {
+      get : function(x1, y1, x2, y2, width, height, pixels) {
+        var k = (y1 - y2) / (x1 - x2);
+        var b = y1 - k * x1;
+        var index = 0;
+        if (k >= -1 && k <= 1) {
           if (x1 > x2) {
             x2 = [x1, x1 = x2][0];
             y2 = [y1, y1 = y2][0];
           }
-          a = y1 - y2;
-          b = -(x1 - x2);
 
-          if (b == 0)
+          var y = y1;
+          for (x = x1; x < x2; x++) {
+            index = (x + Math.floor(y + 0.5) * width) * 4;
+            drawPixel2(index, pixels);
+            y += k;
+          }
+        } else {
+          if (y1 > y2) {
+            x2 = [x1, x1 = x2][0];
+            y2 = [y1, y1 = y2][0];
+          }
+
+          if (x1 - x2 == 0)
+            k = 0;
+          else
+            k = 1.0 / k;
+          var x = x1;
+          for (y = y1; y < y2; y++) {
+            index = (Math.floor(x + 0.5) + y * width) * 4;
+            drawPixel2(index, pixels);
+            x += k;
+          }
+        }
+      }
+    },
+    midpoint : {
+      get : function(x1, y1, x2, y2, width, height, pixels) {
+        var a, b, k, x, y, d, d1, d2;
+        if (x1 > x2) {
+          x2 = [x1, x1 = x2][0];
+          y2 = [y1, y1 = y2][0];
+        }
+        a = y1 - y2;
+        b = -(x1 - x2);
+
+        if (b == 0)
             k = (y1 < y2) ? 2 : -2; // In order to draw a vertical line.
           else
             k = a / -b;
@@ -179,7 +171,7 @@
           if (steep) {
             y1 = [x1, x1 = y1][0];
             y2 = [x2, x2 = y2][0];
-          }
+          } 
           if (x1 > x2) {
             x2 = [x1, x1 = x2][0];
             y2 = [y1, y1 = y2][0];
@@ -229,30 +221,29 @@
       c.style.left = event.clientX + 'px';
       c.style.top = event.clientY + 'px';
     }
-  </script>
+    </script>
 
-</head>
-<body>
+  </head>
 
-<div id="line" ondrop="onDrop(event)" ondragover="onDragOver(event)">
-  <canvas id="canvasLine" width="255" height="255"></canvas>
+  <body>
 
-  <canvas id="c1" width="10" height="10" draggable="true" ondragstart="onDragStart(event)"
-          style="position: absolute;top: 50px;left: 100px;">
-    <script>drawCircle("c1");</script>
-  </canvas>
+    <div id="line" ondrop="onDrop(event)" ondragover="onDragOver(event)">
+      <canvas id="canvasLine" width="255" height="255"></canvas>
 
-  <canvas id="c2" draggable="true" ondragstart="onDragStart(event)"
-          style="position: absolute;top: 200px;left: 100px;">
-    <script>drawCircle("c2");</script>
-  </canvas>
-</div>
+      <canvas id="c1" width="10" height="10" draggable="true" ondragstart="onDragStart(event)" style="position: absolute;top: 50px;left: 100px;">
+        <script>drawCircle("c1");</script>
+      </canvas>
 
-<div id="btn">
-  <button onclick="drawLine('dda')">RunDDA</button>
-  <button onclick="drawLine('midpoint')">RunMidPoint</button>
-  <button onclick="drawLine('bresenham')">RunBresenham</button>
-</div>
+      <canvas id="c2" draggable="true" ondragstart="onDragStart(event)" style="position: absolute;top: 200px;left: 100px;">
+        <script>drawCircle("c2");</script>
+      </canvas>
+    </div>
 
-</body>
-</html>
+    <div id="btn">
+      <button onclick="drawLine('dda')">RunDDA</button>
+      <button onclick="drawLine('midpoint')">RunMidPoint</button>
+      <button onclick="drawLine('bresenham')">RunBresenham</button>
+    </div>
+
+  </body>
+  </html>

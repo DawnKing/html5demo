@@ -59,8 +59,7 @@
 
           var y = y1;
           for (x = x1; x < x2; x++) {
-            index = (x + Math.floor(y + 0.5) * width) * 4;
-            drawPixel2(index, pixels);
+            drawPixel(x, Math.floor(y + 0.5), width, pixels);
             y += k;
           }
         } else {
@@ -75,8 +74,7 @@
             k = 1.0 / k;
           var x = x1;
           for (y = y1; y < y2; y++) {
-            index = (Math.floor(x + 0.5) + y * width) * 4;
-            drawPixel2(index, pixels);
+            drawPixel(Math.floor(x + 0.5), y, width, pixels);
             x += k;
           }
         }

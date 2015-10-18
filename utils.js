@@ -13,14 +13,8 @@ function isPositiveInt(n) {
 function drawPixel(x, y, width, pixels, rgba) {
   if (!isPositiveInt(x) || !isPositiveInt(y))
     throw new Error("argument must be a nonnegative integer");
-  var index = (x + y * width) * 4;
-  drawPixel2(index, pixels, rgba);
-}
-
-function drawPixel2(index, pixels, rgba) {
-  if (!isPositiveInt(index))
-    throw new Error("argument must be a nonnegative integer");
   rgba = typeof rgba !== "undefined" ? rgba : [0, 0, 0, 255];
+  var index = (x + y * width) * 4;
   pixels[index] = rgba[0]; // R
   pixels[index + 1] = rgba[1]; // G
   pixels[index + 2] = rgba[2]; // B

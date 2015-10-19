@@ -6,8 +6,8 @@
   <style>
   #line {
     position: absolute;
-    top: 0px;
-    left: 0px;
+    top: 0;
+    left: 0;
     width: 255px;
     height: 255px;
     border:1px solid red;
@@ -44,17 +44,13 @@
     context.putImageData(imgData, 0, 0);
   }
 
-
   var drawStrategy = {
     dda : {
       get : function(x1, y1, x2, y2, width, height, pixels) {
         var k = (y1 - y2) / (x1 - x2);
-        var b = y1 - k * x1;
-        var index = 0;
         if (k >= -1 && k <= 1) {
           if (x1 > x2) {
             x2 = [x1, x1 = x2][0];
-            y2 = [y1, y1 = y2][0];
           }
 
           var y = y1;

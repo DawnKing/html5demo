@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PolygonFloodFill</title>
+  <script type="text/javascript" src="utils.js"></script>
+</head>
+<body>
+  <canvas id="container" width="800" height="800"></canvas>
+  <script>
+  var TARGET_PIXEL_COLOR = [0, 0, 0, 0];
+  var REPLACE_PIXEL_COLOR = [255, 0, 0, 255];
+  var context, imgData, width, pixels;
+  draw();
+
+  function draw() {
+    var canvas = document.getElementById("container");
+    context = canvas.getContext("2d");
+
+    width = canvas.attributes.width.value;
+    var height = canvas.attributes.height.value;
+
+    //context.lineWidth = 1;  // alpha not equal 255
+    context.lineWidth = 1+0.5;// Always add 0.5 pixel to the position of your line to prevent the anti-aliasing.
+    context.strokeStyle = "rgba(255, 0, 0, 1.0)";
+    context.strokeRect(100, 100, 50, 50);
+
+    imgData = context.getImageData(0, 0, width, height);
+    pixels = imgData.data;
+
+    floodFill(125, 125);
+    context.putImageData(imgData, 0, 0);
+  }
+
+  function floodFill(x, y) {
+    if (pixelEqual(x, y, width, pixels, REPLACE_PIXEL_COLOR))
+      return;
+    if (!pixelEqual(x, y, width, pixels, TARGET_PIXEL_COLOR))
+      return;
+    drawPixel(x, y, width, pixels, REPLACE_PIXEL_COLOR);
+    context.putImageData(imgData, 0, 0);
+    floodFill(x-1, y);
+    floodFill(x, y-1);
+    floodFill(x+1, y);
+    floodFill(x, y+1);
+  }
+  </script>
+</body>
+</html>

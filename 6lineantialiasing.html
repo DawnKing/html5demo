@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Line Anti-aliasing</title>
+  <style>
+    #line {
+      position: absolute;
+      top: 0px;
+      left: 0px;
+      width: 255px;
+      height: 255px;
+      border:1px solid red;
+    }
+    #btn {
+      position: absolute;
+      left: 255px;
+    }
+  </style>
+
+  <script type="text/javascript" src="utils.js"></script>
+
+  <script>
+    function drawLine(strategyName) {
+      var canvas = document.getElementById("canvasLine");
+      var context = canvas.getContext("2d");
+      var circle1 = document.getElementById("c1");
+      var circle2 = document.getElementById("c2");
+
+      var x1 = circle1.offsetLeft;
+      var y1 = circle1.offsetTop;
+      var x2 = circle2.offsetLeft;
+      var y2 = circle2.offsetTop;
+      var width = canvas.attributes.width.value;
+      var height = canvas.attributes.height.value;
+
+      // reset all stage color
+      context.fillStyle = "rgb(255, 255, 255)";
+      context.fillRect(0, 0, width, height);
+      var imgData = context.getImageData(0, 0 ,width, height);
+      var pixels = imgData.data;
+
+      drawStrategy[strategyName]["get"](x1, y1, x2, y2, width, height, pixels);
+      context.putImageData(imgData, 0, 0);
+    }
+
+    var drawStrategy = {
+      dda : {
+        get : function(x1, y1, x2, y2, width, height, pixels) {
+          var k = (y1 - y2) / (x1 - x2);
+          if (k >= -1 && k <= 1) {
+            if (x1 > x2) {
+              x2 = [x1, x1 = x2][0];
+              y2 = [y1, y1 = y2][0];
+            }
+            var y = y1;
+            for (x = x1; x < x2; x++) {
+              drawPixel(x, Math.floor(y + 0.5), width, pixels);
+              y += k;
+            }
+          } else {
+            if (y1 > y2) {
+              x2 = [x1, x1 = x2][0];
+              y2 = [y1, y1 = y2][0];
+            }
+            if (x1 - x2 == 0)
+              k = 0;
+            else
+              k = 1.0 / k;
+            var x = x1;
+            for (y = y1; y < y2; y++) {
+              drawPixel(Math.floor(x + 0.5), y, width, pixels);
+              x += k;
+            }
+          }
+        }
+      },
+      ddaAnti : {
+        get : function(x1, y1, x2, y2, width, height, pixels) {
+          var k = (y1 - y2) / (x1 - x2);
+          var a1 = 0, a2 = 0;
+          if (k >= -1 && k <= 1) {
+            if (x1 > x2) {
+              x2 = [x1, x1 = x2][0];
+              y2 = [y1, y1 = y2][0];
+            }
+
+            var y = y1, cy = 0, cy1, cy2;
+            for (x = x1; x < x2; x++) {
+              if (k < 0) {
+                cy = y - 0.5;
+                cy1 = Math.floor(cy);
+                cy2 = stripNumber(cy1) < stripNumber(y) ? cy1 - 1 : cy1 + 1;
+              } else {
+                cy = y + 0.5;
+                cy1 = Math.floor(cy);
+                cy2 = stripNumber(cy1) >= stripNumber(y) ? cy1 - 1 : cy1 + 1;
+              }
+              a1 = (cy - cy1) * 255;
+              a2 = (1 - (cy - cy1)) * 255;
+              // console.log(x, y, cy, cy1, cy2, a1, a2)
+              drawPixel(x, cy1, width, pixels, [0, 0, 0, a1]);
+              drawPixel(x, cy2, width, pixels, [0, 0, 0, a2]);
+              y += k;
+            }
+            // for (x = 0; x < 800; x++) {
+            //   drawPixel(x, 49, width, pixels);
+            // }
+          } else {
+            if (y1 > y2) {
+              x2 = [x1, x1 = x2][0];
+              y2 = [y1, y1 = y2][0];
+            }
+
+            if (x1 - x2 == 0)
+              k = 0;
+            else
+              k = 1.0 / k;
+            var x = x1, cx = 0, cx1, cx2;
+            for (y = y1; y < y2; y++) {
+              if (k < 0) {
+                cx = x - 0.5;
+                cx1 = Math.floor(cx);
+                cx2 = stripNumber(cx1) < stripNumber(x) ? cx1 - 1 : cx1 + 1;
+              } else {
+                cx = x + 0.5;
+                cx1 = Math.floor(cx);
+                cx2 = stripNumber(cx1) >= stripNumber(x) ? cx1 - 1 : cx1 + 1;
+              }
+              a1 = (cx - cx1) * 255;
+              a2 = (1-(cx - cx1)) * 255;
+              // console.log(y, x, cx, cx1, cx2, a1, a2)
+              drawPixel(cx1, y, width, pixels, [0, 0, 0, a1]);
+              drawPixel(cx2, y, width, pixels, [0, 0, 0, a2]);
+              x += k;
+            }
+          }
+          // for (y = 0; y < 46; y++) {
+          //  drawPixel(111, y, width, pixels);
+          // }
+        }
+      }
+    };
+
+    function drawCircle(idName) {
+      var c = document.getElementById(idName);
+      var size = 10;
+      c.width = size;
+      c.height = size;
+      var cxt = c.getContext("2d");
+      cxt.fillStyle = "#FF0000";
+      cxt.fillRect(0, 0, size, size);
+    }
+
+    function onDragOver(ev) {
+      ev.preventDefault();
+    }
+
+    function onDragStart(ev) {
+      ev.dataTransfer.setData("Text", ev.target.id);
+    }
+
+    function onDrop(ev) {
+      ev.preventDefault();
+      var data = ev.dataTransfer.getData("Text");
+      var c = document.getElementById(data);
+      c.style.left = event.clientX + 'px';
+      c.style.top = event.clientY + 'px';
+    }
+  </script>
+
+</head>
+
+<body>
+
+<div id="line" ondrop="onDrop(event)" ondragover="onDragOver(event)">
+  <canvas id="canvasLine" width="255" height="255"></canvas>
+
+  <canvas id="c1" width="10" height="10" draggable="true" ondragstart="onDragStart(event)" style="position: absolute;top: 50px;left: 100px;">
+    <script>drawCircle("c1");</script>
+  </canvas>
+
+  <canvas id="c2" draggable="true" ondragstart="onDragStart(event)" style="position: absolute;top: 200px;left: 150px;">
+    <script>drawCircle("c2");</script>
+  </canvas>
+</div>
+
+<div id="btn">
+  <button onclick="drawLine('dda')">RunDDA</button>
+  <button onclick="drawLine('ddaAnti')">RunDDAAnti</button>
+</div>
+
+</body>
+</html>

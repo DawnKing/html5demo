@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cohen-Sutherland</title>
+  <script type="text/javascript" src="utils.js"></script>
+</head>
+<body>
+<canvas id="container" width="800" height="800"></canvas>
+<script>
+  var INSIDE = 0; // 0000
+  var LEFT = 1; // 0001
+  var RIGHT = 2;  // 0010
+  var TOP = 4; // 0100
+  var BOTTOM = 8;  // 1000
+  var xMin = 100, xMax = 200, yMin = 100, yMax = 200;
+
+  var context;
+
+  draw();
+
+  function draw() {
+    var canvas = document.getElementById("container");
+    context = canvas.getContext("2d");
+
+    context.strokeStyle = "rgba(255, 0, 0, 1.0)";
+    context.strokeRect(xMin, yMin, xMax - xMin, yMax - yMin);
+
+    var x0 = 70, y0 = 50, x1 = 250, y1 = 250;
+    context.beginPath();
+    context.moveTo(x0, y0);
+    context.lineTo(x1,y1);
+    context.strokeStyle="rgba(0, 0, 255, 0.2)";
+    context.stroke();
+    clip(x0, y0, x1, y1);
+  }
+
+  // Cohen-Sutherland clipping algorithm clips a line from
+  // P0 = (x0, y0) to P1 = (x1, y1) against a rectangle with
+  // diagonal from (xmin, ymin) to (xmax, ymax);
+  function clip(x0, y0, x1, y1) {
+    // compute outcodes for P0, P1, and whatever point lies outside the clip rectange
+    var outCode0 = computeOutCode(x0, y0);
+    var outCode1 = computeOutCode(x1, y1);
+    var accept = false;
+
+    while (true) {
+      if ((outCode0 | outCode1) == 0) { // Two points int the same area. The area inside clip rectangle
+        accept = true;
+        break;
+      } else if ((outCode0 & outCode1) > 0) { // Two points int the same area. The area outside clip rectangle
+        break;
+      } else {
+        // failed both tests, so calculate the line segment to clip
+        // from an outside point to an intersection with clip edge
+        var x, y;
+        // At least one endpoint is outside the clip rectangle; pick it.
+        var outCodeOut = outCode0 ? outCode0 : outCode1;
+        // Now find the intersection point;
+        // use formulas y = y0 + slope * (x - x0), x = x0 + (1 / slope) * (y - y0)
+        if ((outCodeOut & BOTTOM) > 0) {
+          x = x0 + (x1 - x0) * (yMax - y0) / (y1 - y0);
+          y = yMax;
+        } else if ((outCodeOut & TOP) > 0) {
+          x = x0 + (x1 - x0) * (yMin - y0) / (y1 - y0);
+          y = yMin;
+        } else if ((outCodeOut & RIGHT) > 0) {
+          y = y0 + (y1 - y0) * (xMax - x0) / (x1 - x0);
+          x = xMax;
+        } else if ((outCodeOut & LEFT) > 0) {
+          y = y0 + (y1 - y0) * (xMin - x0) / (x1 - x0);
+          x = xMin;
+        }
+        // Now we move outside point to intersection point to clip
+        // and get ready for next pass.
+        if (outCodeOut == outCode0) {
+          x0 = x;
+          y0 = y;
+          outCode0 = computeOutCode(x0, y0);
+        } else {
+          x1 = x;
+          y1 = y;
+          outCode1 = computeOutCode(x1, y1);
+        }
+      }
+    }
+    if (accept) {
+      context.beginPath();
+      context.moveTo(x0, y0);
+      context.lineTo(x1,y1);
+      context.strokeStyle="green";
+      context.stroke();
+    }
+  }
+
+  function computeOutCode(x, y) {
+    var code = INSIDE;  //initialised as being inside of clip window
+    if (x < xMin)       // to the left of clip window
+      code |= LEFT;
+    else if (x > xMax)  // to the right of clip window
+      code |= RIGHT;
+    if (y < yMin)       // above the clip window
+      code |= TOP;
+    else if (y > yMax)  // bellow the clip window
+      code |= BOTTOM;
+    return code;
+  }
+</script>
+</body>
+</html>

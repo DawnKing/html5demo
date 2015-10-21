@@ -26,10 +26,10 @@ function getPixel(x, y, width, pixels) {
     throw new Error("argument must be a nonnegative integer");
   var index = (x + y * width) * 4;
   return [
-    pixels[index],
-    pixels[index + 1],
-    pixels[index + 2],
-    pixels[index + 3]
+  pixels[index],
+  pixels[index + 1],
+  pixels[index + 2],
+  pixels[index + 3]
   ];
 }
 
@@ -39,11 +39,11 @@ function pixelEqual(x, y, width, pixels, rgba) {
 }
 
 function arraysEqual(a, b) {
-  if (a === b)
+  if (a === b) 
     return true;
-  if (a == null || b == null)
+  if (a == null || b == null) 
     return false;
-  if (a.length != b.length)
+  if (a.length != b.length) 
     return false;
   // If you don't care about the order of the elements inside
   // the array, you should sort both arrays here.
@@ -56,4 +56,8 @@ function arraysEqual(a, b) {
 function stripNumber(number, precision) {
   precision = typeof precision !== "undefined" ? precision : 3;
   return (parseFloat(number.toPrecision(precision)));
+}
+
+function isZero(n) {
+  return (n < 0.000001 && n > -0.000001);
 }

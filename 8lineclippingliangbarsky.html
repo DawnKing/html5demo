@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Liang-Barsky</title>
+  <script type="text/javascript" src="utils.js"></script>
+</head>
+<body>
+<canvas id="container" width="800" height="800"></canvas>
+<script>
+  var xMin = 100, xMax = 200, yMin = 100, yMax = 200;
+  var context;
+
+  draw();
+
+  function draw() {
+    var canvas = document.getElementById("container");
+    context = canvas.getContext("2d");
+
+    context.strokeStyle = "rgba(255, 0, 0, 1.0)";
+    context.strokeRect(xMin, yMin, xMax - xMin, yMax - yMin);
+
+    var x0 = 100, y0 = 50, x1 = 150, y1 = 250;
+    context.beginPath();
+    context.moveTo(x0, y0);
+    context.lineTo(x1,y1);
+    context.strokeStyle="rgba(0, 0, 255, 0.2)";
+    context.stroke();
+    clip(x0, y0, x1, y1);
+  }
+
+  function clip(x0, y0, x1, y1) {
+    var dx, dy, uArray = [0, 1];
+
+    dx = x1 - x0;
+    dy = y1 - y0;
+
+    // A line parallel to a clipping window edge has pk = 0 for that boundary
+    if (isZero(dx) && isZero(dy) && pointInside(x0, y0))
+      return;
+
+    if (clipT(-dx, x0 - xMin, uArray) &&   // p1 = -deltaX, q1 = x0 - xMin (left)
+      clipT(dx, xMax - x0, uArray) &&  // p2 = deltaX, q2 = xMax - x0 (right)
+      clipT(-dy, y0 - yMin, uArray) &&   // p3 = -deltaY, q3 = y0 - yMin (bottom)
+      clipT(dy, yMax - y0, uArray))    // p4 = deltaY, q4 = yMax - y0 (top)
+    {
+      // x = x0 + u * dx
+      // y = y0 + u * dy
+      if (uArray[1] < 1) {
+        x1 = x0 + uArray[1] * dx;
+        y1 = y0 + uArray[1] * dy;
+      }
+      if (uArray[0] > 0) {
+        x0 += uArray[0] * dx;
+        y0 += uArray[0] * dy;
+      }
+
+      context.beginPath();
+      context.moveTo(x0, y0);
+      context.lineTo(x1,y1);
+      context.strokeStyle="green";
+      context.stroke();
+    }
+  }
+
+  function clipT(denom, num, uArray) {
+    if (isZero(denom))
+      return num <= 0.0;
+    var u = num / denom;  // intersection point
+    if (denom < 0) {
+      if (u > uArray[1])
+        return 0;
+      if (u > uArray[0])
+        uArray[0] = u;
+    } else {
+      if (u < uArray[0])
+        return 0;
+      if (u < uArray[1])
+        uArray[1] = u;
+    }
+    return 1;
+  }
+
+  function pointInside(x, y) {
+    return (x >= xMin && x <= xMax && y >= yMin && y <= yMax)
+  }
+</script>
+</body>
+</html>

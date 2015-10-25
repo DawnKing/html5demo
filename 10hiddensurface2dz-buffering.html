@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>2d Z-buffering</title>
+  <script type="text/javascript" src="utils.js"></script>
+</head>
+<body>
+<canvas id="container" width="800" height="800"></canvas>
+<script>
+  var polygon1 = {
+    vertex : [[120, 120], [220, 120], [220, 220], [120, 220]],
+    z : 0,
+    color : [255, 0, 0, 255]
+  };
+  var polygon2 = {
+    vertex : [[150, 120], [220, 120], [220, 220], [150, 220]],
+    z : 1,
+    color : [0, 255, 0, 255]
+  };
+  var polygon3 = {
+    vertex : [[100, 200], [200, 200], [200, 300], [100, 300]],
+    z : 0,
+    color : [0, 0, 255, 255]
+  };
+  var polyList = [polygon1, polygon2, polygon3];
+  var xMin = 100, xMax = 300, yMin = 100, yMax = 300; // 200 x 200
+  var context, width, pixels;
+
+  draw();
+
+  function draw() {
+    var canvas = document.getElementById("container");
+    context = canvas.getContext("2d");
+
+    width = canvas.attributes.width.value;
+    var height = canvas.attributes.height.value;
+
+    var imgData = context.getImageData(0, 0, width, height);
+    pixels = imgData.data;
+
+    zBuffering();
+    context.putImageData(imgData, 0, 0);
+
+    // red border rectangle
+    context.strokeStyle = "rgba(255, 0, 0, 1.0)";
+    context.strokeRect(xMin, yMin, xMax - xMin, yMax - yMin);
+  }
+
+  function zBuffering() {
+    var zb, pk, indexP;
+    for (var x = xMin; x < xMax; x++) {
+      for (var y = yMin; y < yMax; y++) {
+        zb = -1;
+        for (var p = 0; p < polyList.length; p++) {
+          pk = polyList[p];
+          if (pointInPolygon(x, y, pk.vertex)) {
+            if (pk.z > zb) {
+              zb = pk.z;
+              indexP = p;
+            }
+          }
+        }
+        if (zb != -1) {
+          var color = polyList[indexP].color;
+          drawPixel(x, y, width, pixels, color);
+        }
+      }
+    }
+  }
+
+  // Algorithm is explained in this website.
+  // http://stackoverflow.com/questions/11716268/point-in-polygon-algorithm
+  function pointInPolygon(x, y, polygon) {
+    var result = false;
+    for (var i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        var xi = polygon[i][0], yi = polygon[i][1];
+        var xj = polygon[j][0], yj = polygon[j][1];
+        
+        var intersect = ((yi > y) != (yj > y))
+            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) 
+          result = !result;
+    }
+    return result;
+  }
+</script>
+</body>
+</html>

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>ScanLineFill</title>
   <style>
-    #containerSytle {
+    #containerStyle {
       position: absolute;
       top: 0;
       left: 0;
@@ -17,7 +17,7 @@
 </head>
 <body>
 
-<div id="containerSytle">
+<div id="containerStyle">
   <canvas id="container" width="800" height="800"></canvas>
 
   <script>
@@ -25,21 +25,16 @@
     //var POINT_NUM = 3, polygonPoint = [{x:100,y:100},{x:0,y:200},{x:200,y:200}];
     //var POINT_NUM = 6, polygonPoint = [{x:70,y:10},{x:20,y:30},{x:20,y:90},{x:70,y:70},{x:130,y:110},{x:130,y:50}];
     draw();
-
     function draw() {
       var canvas = document.getElementById("container");
       var context = canvas.getContext("2d");
-
       var width = canvas.attributes.width.value;
       var height = canvas.attributes.height.value;
-
       var imgData = context.getImageData(0, 0, width, height);
       var pixels = imgData.data;
-
       scanLineFill(width, pixels);
       context.putImageData(imgData, 0, 0);
     }
-
     function scanLineFill(width, pixels) {
       // Find minimum enclosed rectangle
       var maxY = 0, minY = 10000;
@@ -80,7 +75,7 @@
         for (j = 0; j < netList[y].length; j++) {
           aetList.push(netList[y][j]);
         }
-        // Reorder the deges in the active edge table
+        // Reorder the edges in the active edge table
         aetList.sort(sortNum);
         // Draw all pixels from the x value
         for (i = 0; i < aetList.length; i += 2) {
@@ -91,11 +86,9 @@
       }
       return pixels;
     }
-
     function sortNum(a, b) {
       return a.x - b.x;
     }
-
     function addNetList(polygonPoint, i, j, netList, offset) {
       var index = (j + offset + POINT_NUM) % POINT_NUM;
       if (polygonPoint[index].y > polygonPoint[j].y) {

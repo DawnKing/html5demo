@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScanLineFill</title>
+  <style>
+    #containerStyle {
+      position: absolute;
+      top: 0;
+      left: 0;
+      border:1px solid red;
+    }
+  </style>
+
+  <script type="text/javascript" src="utils.js"></script>
+
+</head>
+<body>
+
+<div id="containerStyle">
+  <canvas id="container" width="800" height="800"></canvas>
+
+  <script>
+    var polygon1 = {
+      vertex: [[120, 120], [220, 120], [220, 220], [120, 220]],
+      z: 0,
+      color: [255, 0, 0, 255]
+    };
+    var polygon2 = {
+      vertex: [[150, 120], [220, 120], [220, 220], [150, 220]],
+      z: 1,
+      color: [0, 255, 0, 255]
+    };
+    var polygon3 = {
+      vertex: [[100, 200], [200, 200], [200, 300], [100, 300]],
+      z: 2,
+      color: [0, 0, 255, 255]
+    };
+    var polyList = [polygon1, polygon2, polygon3];
+
+    draw();
+
+    function draw() {
+      var canvas = document.getElementById("container");
+      var context = canvas.getContext("2d");
+      var width = canvas.attributes.width.value;
+      var height = canvas.attributes.height.value;
+      var imgData = context.getImageData(0, 0, width, height);
+      var pixels = imgData.data;
+      scanLineFill(width, pixels);
+      context.putImageData(imgData, 0, 0);
+    }
+
+    function scanLineFill(width, pixels) {
+      // Find minimum enclosed rectangle
+      var maxY = 0, minY = 10000;
+      var i, j, y, v, vertexList;
+      for (i = 0; i < polyList.length; i++) {
+        vertexList = polyList[i].vertex;
+        for (v = 0; v < vertexList.length; v++) {
+          y = vertexList[v][1];
+          if (y > maxY)
+            maxY = y;
+          if (y < minY)
+            minY = y;
+        }
+      }
+      // Initializing the New Edge Table
+      var netList = [];
+      for (y = minY; y <= maxY; y++) {
+        netList[y] = [];
+      }
+      for (y = minY; y <= maxY; y++) {
+        for (i = 0; i < polyList.length; i++) {
+          vertexList = polyList[i].vertex;
+          for (v = 0; v < vertexList.length; v++) {
+            var y2 = vertexList[v][1];
+            if (y2 != y)
+              continue;
+            addNetList(polyList[i], y, v, netList, +1);
+            addNetList(polyList[i], y, v, netList, -1);
+          }
+        }
+      }
+      // Initializing the Active Edge Table
+      var aetList = [];
+      for (y = minY; y <= maxY; y++) {
+        // Update the x value for for each edge in the active edge table
+        for (j = 0; j < aetList.length; j++) {
+          aetList[j].x += aetList[j].dx;
+        }
+        // Remove any edges from the active edge table for which the maximum y value is equal to the scan line
+        for (j = aetList.length - 1; j >= 0; j--) {
+          if (aetList[j].yMax != y)
+            continue;
+          aetList.splice(j, 1);
+        }
+        // Push any edges from the new edge table for which the minimum y value is equal to the scan line
+        for (j = 0; j < netList[y].length; j++) {
+          aetList.push(netList[y][j]);
+        }
+        // Reorder the edges in the active edge table
+        aetList.sort(sortNum);
+        // Draw all pixels from the x value
+        for (i = 0; i < aetList.length; i += 2) {
+          for (var x = aetList[i].x; x <= aetList[i + 1].x; x++) {
+            drawPixel(parseInt(x), y, width, pixels, aetList[i].color);
+          }
+        }
+      }
+      return pixels;
+    }
+
+    function sortNum(a, b) {
+      var z = a.z - b.z;
+      if (z == 0)
+        return a.x - b.x;
+      return z;
+    }
+
+    function addNetList(polygon, y, index, netList, offset) {
+      var vertexList = polygon.vertex;
+      var index2 = (index + offset + vertexList.length) % vertexList.length;
+      if (vertexList[index2][1] > vertexList[index][1]) {
+        netList[y].push({
+          x: vertexList[index][0],
+          yMax: vertexList[index2][1],
+          dx: (vertexList[index2][0] - vertexList[index][0]) / (vertexList[index2][1] - vertexList[index][1]),
+          color: polygon.color,
+          z: polygon.z
+        });
+      }
+    }
+  </script>
+</div>
+
+</body>
+</html>

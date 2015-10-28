@@ -13,6 +13,7 @@
   </style>
 
   <script type="text/javascript" src="utils.js"></script>
+  <script type="text/javascript" src="04scanlinefill.js"></script>
 
 </head>
 <body>
@@ -21,10 +22,9 @@
   <canvas id="container" width="800" height="800"></canvas>
 
   <script>
-    var POINT_NUM = 6, polygonPoint = [{x: 370,y: 10}, {x: 560,y: 100}, {x: 560,y: 200}, {x: 430,y: 130}, {x: 340,y: 170}, {x: 340,y: 80}];
-    //var POINT_NUM = 3, polygonPoint = [{x:100,y:100},{x:0,y:200},{x:200,y:200}];
-    //var POINT_NUM = 6, polygonPoint = [{x:70,y:10},{x:20,y:30},{x:20,y:90},{x:70,y:70},{x:130,y:110},{x:130,y:50}];
+
     draw();
+
     function draw() {
       var canvas = document.getElementById("container");
       var context = canvas.getContext("2d");
@@ -32,72 +32,12 @@
       var height = canvas.attributes.height.value;
       var imgData = context.getImageData(0, 0, width, height);
       var pixels = imgData.data;
-      scanLineFill(width, pixels);
+
+      var polygonPoint = [[370, 10], [560, 100], [560, 200], [430, 130], [340,170], [340,80]];
+//      var polygonPoint = [[100, 100], [200, 100], [200, 200], [100, 200]];
+//      var polygonPoint = [[155, 155], [155, 155], [155, 155], [155, 155]];
+      scanLineFill(width, pixels, polygonPoint);
       context.putImageData(imgData, 0, 0);
-    }
-    function scanLineFill(width, pixels) {
-      // Find minimum enclosed rectangle
-      var maxY = 0, minY = 10000;
-      var i, j;
-      for (i = 0; i < POINT_NUM; i++) {
-        if (polygonPoint[i].y > maxY)
-          maxY = polygonPoint[i].y;
-        if (polygonPoint[i].y < minY)
-          minY = polygonPoint[i].y;
-      }
-      // Initializing the New Edge Table
-      var netList = [];
-      for (i = minY; i <= maxY; i++) {
-        netList[i] = [];
-      }
-      for (i = minY; i <= maxY; i++) {
-        for (j = 0; j < POINT_NUM; j++) {
-          if (polygonPoint[j].y != i)
-            continue;
-          addNetList(polygonPoint, i, j, netList, +1);
-          addNetList(polygonPoint, i, j, netList, -1);
-        }
-      }
-      // Initializing the Active Edge Table
-      var aetList = [];
-      for (var y = minY; y <= maxY; y++) {
-        // Update the x value for for each edge in the active edge table
-        for (j = 0; j < aetList.length; j++) {
-          aetList[j].x += aetList[j].dx;
-        }
-        // Remove any edges from the active edge table for which the maximum y value is equal to the scan line
-        for (j = aetList.length - 1; j >= 0; j--) {
-          if (aetList[j].yMax != y)
-            continue;
-          aetList.splice(j, 1);
-        }
-        // Push any edges from the new edge table for which the minimum y value is equal to the scan line
-        for (j = 0; j < netList[y].length; j++) {
-          aetList.push(netList[y][j]);
-        }
-        // Reorder the edges in the active edge table
-        aetList.sort(sortNum);
-        // Draw all pixels from the x value
-        for (i = 0; i < aetList.length; i += 2) {
-          for (var x = aetList[i].x; x <= aetList[i + 1].x; x++) {
-            drawPixel(parseInt(x), y, width, pixels);
-          }
-        }
-      }
-      return pixels;
-    }
-    function sortNum(a, b) {
-      return a.x - b.x;
-    }
-    function addNetList(polygonPoint, i, j, netList, offset) {
-      var index = (j + offset + POINT_NUM) % POINT_NUM;
-      if (polygonPoint[index].y > polygonPoint[j].y) {
-        netList[i].push({
-          x: polygonPoint[j].x,
-          yMax: polygonPoint[index].y,
-          dx: (polygonPoint[index].x - polygonPoint[j].x) / (polygonPoint[index].y - polygonPoint[j].y)
-        });
-      }
     }
   </script>
 </div>

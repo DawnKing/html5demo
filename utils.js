@@ -61,3 +61,50 @@ function stripNumber(number, precision) {
 function isZero(n) {
   return (n < 0.000001 && n > -0.000001);
 }
+
+function drawPolygon(context, polygon, strokeStyle, fillStyle) {
+  context.strokeStyle = strokeStyle;
+  context.beginPath();
+
+  context.moveTo(polygon[0][0],polygon[0][1]);
+  for (i = 1; i < polygon.length; i++)
+    context.lineTo(polygon[i][0],polygon[i][1]);
+
+  context.closePath();
+  context.stroke();
+
+  if (fillStyle == undefined)
+    return;
+  context.fillStyle = fillStyle;
+  context.fill();
+}
+
+// Algorithm is explained in this website.
+// http://stackoverflow.com/questions/11716268/point-in-polygon-algorithm
+// polygon format: [[x0, y0], [x1, y1], [x2, y2], [x3, y3]]
+function pointInPolygon(x, y, polygon) {
+  var result = false;
+  for (var i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    var xi = polygon[i][0], yi = polygon[i][1];
+    var xj = polygon[j][0], yj = polygon[j][1];
+
+    var intersect = ((yi > y) != (yj > y))
+      && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect)
+      result = !result;
+  }
+  return result;
+}
+
+function getBoundingBox(pointList) {
+  var minX, minY, maxX, maxY;
+  minX = minY = Number.MAX_VALUE;
+  maxX = maxY = Number.MIN_VALUE;
+  for (var v = 0; v < pointList.length; v++) {
+    minX = Math.min(minX, pointList[v][0]);
+    minY = Math.min(minY, pointList[v][1]);
+    maxX = Math.max(maxX, pointList[v][0]);
+    maxY = Math.max(maxY, pointList[v][1]);
+  }
+  return [minX, minY, maxX, maxY];
+}

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Warnock Algorithm</title>
+  <style>
+    #containerStyle {
+      position: absolute;
+      top: 0;
+      left: 0;
+      border:1px solid red;
+    }
+  </style>
+
+  <script type="text/javascript" src="utils.js"></script>
+  <script type="text/javascript" src="04scanlinefill.js"></script>
+
+</head>
+<body>
+
+<div id="containerStyle">
+  <canvas id="container" width="800" height="800"></canvas>
+
+  <script>
+    var polygon1 = {
+      vertex: [[120, 120], [220, 120], [220, 220], [120, 220]],
+      z: 0,
+      color: [255, 0, 0, 255]
+    };
+    var polygon2 = {
+      vertex: [[150, 120], [220, 120], [220, 220], [150, 220]],
+      z: 1,
+      color: [0, 255, 0, 255]
+    };
+    var polygon3 = {
+      vertex: [[100, 200], [200, 200], [200, 300], [100, 300]],
+      z: 2,
+      color: [0, 0, 255, 255]
+    };
+    var polyList = [polygon1, polygon2, polygon3];
+    var viewport = [100, 100, 200, 200];// 200 x 200
+
+    var context, width, pixels;
+
+    draw();
+
+    function draw() {
+      var canvas = document.getElementById("container");
+      context = canvas.getContext("2d");
+      width = canvas.attributes.width.value;
+      var height = canvas.attributes.height.value;
+      var imgData = context.getImageData(0, 0, width, height);
+      pixels = imgData.data;
+
+      warnock(polyList, viewport);
+      context.putImageData(imgData, 0, 0);
+
+      // red border rectangle
+      context.strokeStyle = "rgba(255, 0, 0, 1.0)";
+      context.strokeRect(viewport[0], viewport[1], viewport[2], viewport[3]);
+    }
+
+    function warnock(polyList, viewport) {
+      var areaPolyList = simpleInViewport(polyList, viewport);
+      if (areaPolyList.length <= 1) {
+        drawSimplePolygon(areaPolyList, viewport);
+      }
+      else {
+        var cW = viewport[2] / 2;
+        var cH = viewport[3] / 2;
+        var vp1 = [viewport[0], viewport[1], cW, cH];
+        var vp2 = [viewport[0] + cW, viewport[1], cW, cH];
+        var vp3 = [viewport[0], viewport[1] + cH, cW, cH];
+        var vp4 = [viewport[0] + cW, viewport[1] + cH, cW, cH];
+        warnock(polyList, vp1);
+        warnock(polyList, vp2);
+        warnock(polyList, vp3);
+        warnock(polyList, vp4);
+      }
+    }
+
+    /**
+     * 1、Polygon within the window
+     *
+     */
+    function simpleInViewport(polyList, viewport) {
+      // No more than one polygon in viewport
+      var result = [];
+      for (var i = 0; i < polyList.length; i++) {
+        var polygon = polyList[i];
+        if (polygonInViewport(polygon.vertex, viewport))
+          result.push(polyList[i]);
+      }
+      // Viewport only 1 pixel in size
+      if (viewport[2] <= 1 && viewport[3] <= 1) {
+        var zMax = -1;
+        var maxPoly;
+        for (i = 0; i < result.length; ++i) {
+          if (result[i].z > zMax) {
+            maxPoly = result[i];
+            zMax = result[i].z;
+          }
+        }
+        if (maxPoly != undefined) {
+          drawPixel(parseInt(viewport[0]+viewport[2]), parseInt(viewport[1]+viewport[3]), width, pixels, maxPoly.color)
+        }
+        return [];
+      }
+      return result;
+    }
+
+    function drawSimplePolygon(polyList, viewport) {
+      if (polyList.length == 0)
+        return;
+      var wX = viewport[0] + viewport[2];
+      var wY = viewport[1] + viewport[3];
+      var pointList = polyList[0].vertex;
+      var result = [], x, y;
+      for (var i = 0; i < pointList.length; i++) {
+        result[i] = [];
+        x = result[i][0] = parseInt(pointList[i][0]);
+        y = result[i][1] = parseInt(pointList[i][1]);
+        if (x < viewport[0])
+          result[i][0] = parseInt(viewport[0]);
+        if (y < viewport[1])
+          result[i][1] = parseInt(viewport[1]);
+        if (x > wX)
+          result[i][0] = parseInt(wX);
+        if (y > wY)
+          result[i][1] = parseInt(wY);
+      }
+      scanLineFill(width, pixels, result, polyList[0].color);
+    }
+
+    function polygonInViewport(pointList, viewport) {
+      var wX = viewport[0] + viewport[2];
+      var wY = viewport[1] + viewport[3];
+      var boundingBox = getBoundingBox(pointList);
+      // 1、Polygon within the window
+      if (boundingBox[0] >= viewport[0] && boundingBox[2] <= wX &&
+        boundingBox[1] >= viewport[1] && boundingBox[3] <= wY)
+        return true;
+      // 2、Window within the polygon
+      if (pointInPolygon(viewport[0], viewport[1], pointList) ||
+        pointInPolygon(wX, viewport[1], pointList) ||
+        pointInPolygon(viewport[0], wY, pointList) ||
+        pointInPolygon(wX, wY, pointList))
+        return true;
+      // 3、Polygon is separated from the window
+      if (boundingBox[0] > wX && boundingBox[2] < viewport[0] &&
+        boundingBox[1] > wY && boundingBox[3] < viewport[1])
+        return true;
+      // 4、Part of the polygon within the window
+      for (var i = 0; i < pointList.length; i++) {
+        var x = pointList[i][0];
+        var y = pointList[i][1];
+        if (x >= viewport[0] && x <= wX && y >= viewport[1] && y <= wY)
+          return true;
+      }
+      return false;
+    }
+  </script>
+</div>
+
+</body>
+</html>

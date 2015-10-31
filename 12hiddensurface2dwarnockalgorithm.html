@@ -14,7 +14,7 @@
 
   <script type="text/javascript" src="utils.js"></script>
   <script type="text/javascript" src="04scanlinefill.js"></script>
-
+  <script type="text/javascript" src="12grahamscan.js"></script>
 </head>
 <body>
 
@@ -22,6 +22,16 @@
   <canvas id="container" width="800" height="800"></canvas>
 
   <script>
+//    var polygon1 = {
+//      vertex: [[101, 101], [201, 101], [201, 201], [101, 201]],
+//      z: 0,
+//      color: [255, 0, 0, 255]
+//    };
+//    var polygon2 = {
+//      vertex: [[150, 101], [201, 101], [201, 201], [150, 201]],
+//      z: 1,
+//      color: [0, 255, 0, 255]
+//    };
     var polygon1 = {
       vertex: [[120, 120], [220, 120], [220, 220], [120, 220]],
       z: 0,
@@ -37,9 +47,17 @@
       z: 2,
       color: [0, 0, 255, 255]
     };
-    var polyList = [polygon1, polygon2, polygon3];
-    var viewport = [100, 100, 200, 200];// 200 x 200
+    var polygon4 = {
+      vertex: [[50, 50], [150, 150], [50, 150]],
+      z: 3,
+      color: [0, 255, 255, 255]
+    };
+    var polyList = [polygon1, polygon2, polygon3, polygon4];
+//    var polyList = [polygon1, polygon2, polygon3];
+//    var polyList = [polygon1, polygon2];
+//    var polyList = [polygon1];
 
+    var viewport = [100, 100, 200, 200];// 200 x 200
     var context, width, pixels;
 
     draw();
@@ -61,9 +79,11 @@
     }
 
     function warnock(polyList, viewport) {
-      var areaPolyList = simpleInViewport(polyList, viewport);
-      if (areaPolyList.length <= 1) {
-        drawSimplePolygon(areaPolyList, viewport);
+      var result = simpleInViewport(polyList, viewport);
+      if (result[0] == -1 || result[0] == 0)
+        return;
+      if (result[0] == 1) {
+        drawSimplePolygon(result[1], viewport);
       }
       else {
         var cW = viewport[2] / 2;
@@ -79,23 +99,28 @@
       }
     }
 
-    /**
-     * 1、Polygon within the window
-     *
-     */
     function simpleInViewport(polyList, viewport) {
-      // No more than one polygon in viewport
-      var result = [];
+      var result = [-1];
+      // 1、Only one polygon in viewport
+      // 2、No more than one polygon in viewport
       for (var i = 0; i < polyList.length; i++) {
         var polygon = polyList[i];
-        if (polygonInViewport(polygon.vertex, viewport))
-          result.push(polyList[i]);
+        if (polygonInViewport(polygon.vertex, viewport) > 0) {
+          if (result[1] == undefined) {
+            result[0] = 1;
+            result.push(polyList[i]);
+          }
+          else {
+            result[0] = 2;
+            result.push(polyList[i]);
+          }
+        }
       }
-      // Viewport only 1 pixel in size
-      if (viewport[2] <= 1 && viewport[3] <= 1) {
+      // 0、Viewport only 1 pixel in size
+      if (viewport[2] <= 1 && viewport[3] <= 1 && result.length > 1) {
         var zMax = -1;
         var maxPoly;
-        for (i = 0; i < result.length; ++i) {
+        for (i = 1; i < result.length; ++i) {
           if (result[i].z > zMax) {
             maxPoly = result[i];
             zMax = result[i].z;
@@ -104,60 +129,164 @@
         if (maxPoly != undefined) {
           drawPixel(parseInt(viewport[0]+viewport[2]), parseInt(viewport[1]+viewport[3]), width, pixels, maxPoly.color)
         }
-        return [];
+        return [0];
       }
       return result;
     }
 
-    function drawSimplePolygon(polyList, viewport) {
-      if (polyList.length == 0)
-        return;
+    function drawSimplePolygon(polygon, viewport) {
+      var drawPoly = [], x, y, i;
+      var intersectionPoint = [], intersectionLine = [];
+
       var wX = viewport[0] + viewport[2];
       var wY = viewport[1] + viewport[3];
-      var pointList = polyList[0].vertex;
-      var result = [], x, y;
-      for (var i = 0; i < pointList.length; i++) {
-        result[i] = [];
-        x = result[i][0] = parseInt(pointList[i][0]);
-        y = result[i][1] = parseInt(pointList[i][1]);
-        if (x < viewport[0])
-          result[i][0] = parseInt(viewport[0]);
-        if (y < viewport[1])
-          result[i][1] = parseInt(viewport[1]);
-        if (x > wX)
-          result[i][0] = parseInt(wX);
-        if (y > wY)
-          result[i][1] = parseInt(wY);
+
+      var result = polygonInViewport(polygon.vertex, viewport, intersectionPoint, intersectionLine);
+      if (result == 1) {
+        drawPoly = polygon.vertex;
+      } else if (result == 4) {
+        drawPoly.push([parseInt(viewport[0]), parseInt(viewport[1])]);
+        drawPoly.push([parseInt(wX), parseInt(viewport[1])]);
+        drawPoly.push([parseInt(wX), parseInt(wY)]);
+        drawPoly.push([parseInt(viewport[0]), parseInt(wY)]);
+      } else {
+        var pointList = [];
+        // Remove the intersection line, keep intersection point.
+        for (i = 0; i < polygon.vertex.length; i++) {
+          // The point in the viewport
+          if (polygon.vertex[i][0] >= viewport[0] && polygon.vertex[i][0] <= wX &&
+            polygon.vertex[i][1] >= viewport[1] && polygon.vertex[i][1] <= wY)
+          {
+            pointList.push(polygon.vertex[i]);
+            continue
+          }
+          var r = true;
+          for (var j = 0; j < intersectionLine.length; j++) {
+            // The point is part of intersection line
+            if (polygon.vertex[i][0] == intersectionLine[j][0] && polygon.vertex[i][1] == intersectionLine[j][1]) {
+              r = false;
+              break;
+            }
+          }
+          if (r)
+            pointList.push(polygon.vertex[i]);
+        }
+
+        for (i = 0; i < intersectionPoint.length; i++) {
+          pointList.push([parseInt(intersectionPoint[i][0]), parseInt(intersectionPoint[i][1])]);
+        }
+
+        // Not beyond the viewport
+        for (i = 0; i < pointList.length; i++) {
+          drawPoly[i] = [];
+          x = drawPoly[i][0] = parseInt(pointList[i][0]);
+          y = drawPoly[i][1] = parseInt(pointList[i][1]);
+          if (x < viewport[0])
+            drawPoly[i][0] = parseInt(viewport[0]);
+          if (y < viewport[1])
+            drawPoly[i][1] = parseInt(viewport[1]);
+          if (x > wX)
+            drawPoly[i][0] = parseInt(wX);
+          if (y > wY)
+            drawPoly[i][1] = parseInt(wY);
+        }
       }
-      scanLineFill(width, pixels, result, polyList[0].color);
+
+      drawPoly = getConvexHull(drawPoly);
+      scanLineFill(width, pixels, drawPoly, polygon.color);
     }
 
-    function polygonInViewport(pointList, viewport) {
+    function polygonInViewport(pointList, viewport, intersectionPoint, intersectionLine) {
       var wX = viewport[0] + viewport[2];
       var wY = viewport[1] + viewport[3];
       var boundingBox = getBoundingBox(pointList);
-      // 1、Polygon within the window
+      // 1、Polygon within the viewport
       if (boundingBox[0] >= viewport[0] && boundingBox[2] <= wX &&
         boundingBox[1] >= viewport[1] && boundingBox[3] <= wY)
-        return true;
-      // 2、Window within the polygon
+        return 1;
+      // 2、Polygon is separated from the viewport
+      if (boundingBox[0] > wX && boundingBox[2] < viewport[0] &&
+        boundingBox[1] > wY && boundingBox[3] < viewport[1])
+        return 2;
+      // 3、Part of the polygon within the viewport
+      var aX = pointList[pointList.length-1][0];
+      var aY = pointList[pointList.length-1][1];
+      var r = 0;
+      for (var i = 0; i < pointList.length; i++) {
+        var bX = pointList[i][0];
+        var bY = pointList[i][1];
+        r = lineSegmentIntersection(aX, aY, bX, bY, viewport[0], viewport[1], wX, viewport[1], intersectionPoint, intersectionLine) == 0;
+        r &= lineSegmentIntersection(aX, aY, bX, bY, wX, viewport[1], wX, wY, intersectionPoint, intersectionLine) == 0;
+        r &= lineSegmentIntersection(aX, aY, bX, bY, wX, wY, viewport[0], wY, intersectionPoint, intersectionLine)  == 0;
+        r &= lineSegmentIntersection(aX, aY, bX, bY, viewport[0], wY, viewport[0], viewport[1], intersectionPoint, intersectionLine)  == 0;
+        if (r == 0)
+          return 3;
+        aX = bX;
+        aY = bY;
+      }
+      // 4、Viewport within the polygon
       if (pointInPolygon(viewport[0], viewport[1], pointList) ||
         pointInPolygon(wX, viewport[1], pointList) ||
         pointInPolygon(viewport[0], wY, pointList) ||
         pointInPolygon(wX, wY, pointList))
-        return true;
-      // 3、Polygon is separated from the window
-      if (boundingBox[0] > wX && boundingBox[2] < viewport[0] &&
-        boundingBox[1] > wY && boundingBox[3] < viewport[1])
-        return true;
-      // 4、Part of the polygon within the window
-      for (var i = 0; i < pointList.length; i++) {
-        var x = pointList[i][0];
-        var y = pointList[i][1];
-        if (x >= viewport[0] && x <= wX && y >= viewport[1] && y <= wY)
-          return true;
+        return 4;
+      return 0;
+    }
+
+    // http://alienryderflex.com/intersect/
+    function lineSegmentIntersection(aX, aY, bX, bY, cX, cY, dX, dY, intersectionPoint, intersectionLine) {
+      var distAB, theCos, theSin, newX, abPos ;
+      var tbX = bX, tbY = bY;
+
+      //  Fail if either line segment is zero-length.
+      if ((aX == bX && aY == bY) || (cX == dX && cY == dY))
+        return 0;
+
+      //  Fail if the segments share an end-point.
+      if ((aX == cX && aY == cY) || (bX == cX && bY == cY) ||
+        (aX == dX && aY==dY) || (bX == dX && bY == dY)) {
+        return 0;
       }
-      return false;
+
+      //  (1) Translate the system so that point A is on the origin.
+      bX -= aX; bY -= aY;
+      cX -= aX; cY -= aY;
+      dX -= aX; dY -= aY;
+
+      //  Discover the length of segment A-B.
+      distAB = Math.sqrt(bX * bX + bY * bY);
+
+      //  (2) Rotate the system so that point B is on the positive X axis.
+      theCos = bX / distAB;
+      theSin = bY / distAB;
+      newX = cX * theCos + cY * theSin;
+      cY = cY * theCos - cX * theSin; cX = newX;
+      newX = dX * theCos + dY * theSin;
+      dY = dY * theCos - dX * theSin; dX = newX;
+
+      //  Fail if segment C-D doesn't cross line A-B.
+      if ((cY < 0. && dY < 0.) || (cY >= 0. && dY >= 0.))
+        return 0;
+
+      //  (3) Discover the position of the intersection point along line A-B.
+      abPos = dX + (cX - dX) * dY / (dY - cY);
+
+      //  Fail if segment C-D crosses line A-B outside of segment A-B.
+      if (abPos < 0. || abPos > distAB)
+        return 0;
+
+      //  (4) Apply the discovered position to line A-B in the original coordinate system.
+      if (intersectionPoint != undefined) {
+        intersectionPoint.push([aX + abPos * theCos, aY + abPos * theSin]);
+      }
+
+      if (intersectionLine != undefined) {
+        intersectionLine.push([aX, aY]);
+        intersectionLine.push([tbX, tbY]);
+      }
+
+      //  Success.
+      return 1;
     }
   </script>
 </div>

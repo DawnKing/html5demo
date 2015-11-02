@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>2D Geometric Transformation</title>
+  <script type="text/javascript" src="utils.js"></script>
+
+  <style>
+    #con {
+      position: absolute;
+      top: 200px;
+      left: 200px;
+      width: 500px;
+      height: 500px;
+    }
+    #btn {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+  </style>
+</head>
+<body>
+<div id="con">
+  <canvas id="container" width="800" height="800"></canvas>
+  <script>
+    var polygon = [[0, 0], [100, 0], [100, 100], [0, 100]];
+    var moveCanvas = [0, 0];
+
+    var init = function () {
+      var canvas = document.getElementById("container");
+      var context = canvas.getContext("2d");
+      drawPolygon(context, polygon, "red");
+    }();
+
+    function draw(strategyName) {
+      var canvas = document.getElementById("container");
+      var context = canvas.getContext("2d");
+      var width = canvas.width;
+      var height = canvas.height;
+
+      // clear screen
+      context.fillStyle="white";
+      context.fillRect(-moveCanvas[0], -moveCanvas[1], width-moveCanvas[0], height-moveCanvas[1]);
+
+      var element1 = document.getElementById("a");
+      var element2 = document.getElementById("b");
+      var value1 = parseInt(element1.value);
+      value1 = isNaN(value1) ? 0 : value1;
+      var value2 = parseInt(element2.value);
+      value2 = isNaN(value2) ? 0 : value2;
+
+      // 2d geometric transformation
+      var matrix = drawStrategy[strategyName]["get"](value1, value2);
+      var result = [];
+      for (var i = 0; i < polygon.length; i++) {
+        result.push(dotProduct(polygon[i], matrix));
+      }
+
+      // calculate canvas size
+      // reset the canvas width or height will let translate invalid
+      var offsetX = 0, offsetY = 0;
+      var bounding = getBoundingBox(result);
+      if (bounding[0] < 0) {
+        offsetX = -moveCanvas[0] - bounding[0];
+        if (offsetX != 0)
+          offsetX = moveCanvas[0] = -bounding[0];
+        else
+          offsetX = moveCanvas[0];
+      }
+      if (bounding[1] < 0) {
+        offsetY = -moveCanvas[1] - bounding[1];
+        if (offsetY != 0)
+          offsetY = moveCanvas[1] = -bounding[1];
+        else
+          offsetY = moveCanvas[1];
+      }
+
+      // reset the canvas size
+      var stageBounding = getBoundingBox(result.concat(polygon));
+      canvas.width = Math.ceil(stageBounding[2] - stageBounding[0]);
+      canvas.height = Math.ceil(stageBounding[3] - stageBounding[1]);
+      context.translate(offsetX, offsetY); // http://stackoverflow.com/questions/21294216/passing-negative-numbers-to-lineto-strokerect-fillrect
+
+      drawPolygon(context, polygon, "red");
+      drawPolygon(context, result, 'green');
+      console.log(offsetX, offsetY, canvas.width, canvas.height);
+    }
+
+    var drawStrategy = {
+      translation : {
+        get : function (tx, ty) {
+          return [
+            1, 0, 0,
+            0, 1, 0,
+            tx, ty, 1
+          ];
+        }
+      },
+      scale : {
+        get : function (sx, sy) {
+          return [
+            sx, 0, 0,
+            0, sy, 0,
+            0, 0, 1
+          ];
+        }
+      },
+      reflectionX : {
+        get : function () {
+          return [
+            -1, 0, 0,
+            0, 1, 0,
+            0, 0, 1
+          ];
+        }
+      },
+      reflectionY : {
+        get : function () {
+          return [
+            1, 0, 0,
+            0, -1, 0,
+            0, 0, 1
+          ];
+        }
+      },
+      rotation : {
+        get : function (theta) {
+          return [
+            Math.cos(theta), Math.sin(theta), 0,
+            -Math.sin(theta), Math.cos(theta), 0,
+            0, 0, 1
+          ];
+        }
+      },
+      shear : {
+        get : function (b, c) {
+          return [
+            1, b, 0,
+            c, 1, 0,
+            0, 0, 1
+          ];
+        }
+      }
+    };
+
+    function dotProduct(a, b) {
+      var result = [];
+      result[0] = a[0] * b[0] + a[1] * b[3] + 1 * b[6];
+      result[1] = a[0] * b[1] + a[1] * b[4] + 1 * b[7];
+      return result;
+    }
+  </script>
+</div>
+
+<div id="btn">
+  <button onclick="draw('translation')">translation</button>
+  <button onclick="draw('scale')">scale</button>
+  <button onclick="draw('reflectionX')">reflectionX</button>
+  <button onclick="draw('reflectionY')">reflectionY</button>
+  <button onclick="draw('rotation')">rotation</button>
+  <button onclick="draw('shear')">shear</button>
+
+  <form>
+    <label for="a">variable1</label>
+    <input type="text" id="a"/>
+    <label for="b">variable2</label>
+    <input type="text" id="b"/>
+  </form>
+</div>
+
+</body>
+</html>

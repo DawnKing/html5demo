@@ -20,7 +20,7 @@
 </head>
 <body>
 <div id="con">
-  <canvas id="container" width="800" height="800"></canvas>
+  <canvas id="container" width="1000" height="800"></canvas>
   <script>
     var vertexData = [
       [200, 100, 200], [400, 100, 200], [400, 100, 400], [200, 100, 400],
@@ -48,12 +48,9 @@
     function draw(strategyName) {
       var canvas = document.getElementById("container");
       var context = canvas.getContext("2d");
-      var width = canvas.width;
-      var height = canvas.height;
 
       // clear screen
-      context.fillStyle="white";
-      context.fillRect(0, 0, width, height);
+      context.clearRect(-200, -200, canvas.width, canvas.height);
 
       // 3d geometric transformation
       var matrix = drawStrategy[strategyName]["get"]();
@@ -113,6 +110,40 @@
           ];
           return matrixDotProductMatrix(a, Try);
         }
+      },
+      isometric : {
+        get : function (a, b) {
+          // https://en.wikipedia.org/wiki/Isometric_projection
+          a = a == undefined ? Math.PI / 180 * -35.264 : a;
+          b = b == undefined ? Math.PI / 180 * 45 : b;
+          var Trx = [
+            1, 0, 0, 0,
+            0, Math.cos(a), Math.sin(a), 0,
+            0, -Math.sin(a), Math.cos(a), 0,
+            0, 0, 0, 1
+          ];
+          var Try = [
+            Math.cos(b), 0, -Math.sin(b), 0,
+            0, 1, 0, 0,
+            Math.sin(b), 0, Math.cos(b), 0,
+            0, 0, 0, 1
+          ];
+          var t = matrixDotProductMatrix(Trx, Try);
+          var th = [
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 1
+          ];
+          return matrixDotProductMatrix(t, th);
+        }
+      },
+      isometric2 : {
+        get : function () {
+          var a = Math.PI / 180 * 20.7;
+          var b = Math.PI / 180 * 19.47;
+          return drawStrategy["isometric"]["get"](a, b);
+        }
       }
     };
 
@@ -154,6 +185,8 @@
   <button onclick="draw('frontView')">frontView</button>
   <button onclick="draw('topView')">topView</button>
   <button onclick="draw('sideView')">sideView</button>
+  <button onclick="draw('isometric')">isometric</button>
+  <button onclick="draw('isometric2')">isometric2</button>
 </div>
 
 </body>

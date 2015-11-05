@@ -144,3 +144,11 @@ function matrix3DDotProductMatrix3D(a, b) {
   result[15] = a[12] * b[3] + a[13] * b[7] + a[14] * b[11] + a[15] * b[15];
   return result;
 }
+
+function drawVertex(vertexData, color) {
+  var drawList = [];
+  for (var i = 0; i < indexData.length; i++) {
+    drawList.push(vertexData[indexData[i]]);
+  }
+  drawPolygon(context, drawList, color);
+}

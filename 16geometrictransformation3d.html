@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>3D Geometric Transformation</title>
+  <script type="text/javascript" src="utils.js"></script>
+  <script type="text/javascript" src="15perspectiveprojection.js"></script>
+
+  <style>
+    #con {
+      position: absolute;
+      top: 200px;
+      left: 200px;
+      width: 500px;
+      height: 500px;
+    }
+    #btn {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+  </style>
+</head>
+<body>
+<div id="con">
+  <canvas id="container" width="800" height="800"></canvas>
+  <script>
+    var vertexData = [
+      [0, 0, 0], [100, 0, 0], [100, 100, 0], [0, 100, 0],
+      [0, 0, 100], [100, 0, 100], [100, 100, 100], [0, 100, 100]
+    ];
+    var indexData = [0, 1, 2, 3, 7, 6, 2, 6, 5, 1, 5, 4, 0, 4, 7, 3];
+
+    var context;
+    var init = function () {
+      var canvas = document.getElementById("container");
+      context = canvas.getContext("2d");
+      context.translate(200, 200);
+      drawVertex(vertexData, "red");
+    }();
+
+    function draw(strategyName) {
+      var canvas = document.getElementById("container");
+      var context = canvas.getContext("2d");
+
+      // clear screen
+      context.clearRect(-200, -200, canvas.width, canvas.height);
+
+      var projectionMatrix = projectionStrategy["onePointPerspective"]["get"]();
+      // original geometric projection
+      var result = [];
+      for (var i = 0; i < vertexData.length; i++) {
+        var p = vector3DDotProductMatrix3D(vertexData[i], projectionMatrix);
+        result.push(p);
+        console.log("original geometric", p.toString());
+      }
+      drawVertex(result, "red");
+
+      // 3d geometric transformation
+      var matrix = drawStrategy[strategyName]["get"]();
+      var transformationVertex = [];
+      for (i = 0; i < vertexData.length; i++) {
+        p = vector3DDotProductMatrix3D(vertexData[i], matrix);
+        transformationVertex.push(p);
+        console.log("transformation", p.toString());
+      }
+
+      // 3d geometric projection
+      result = [];
+      for (i = 0; i < transformationVertex.length; i++) {
+        p = vector3DDotProductMatrix3D(transformationVertex[i], projectionMatrix);
+        result.push(p);
+        console.log(strategyName, p.toString());
+      }
+      drawVertex(result, "green");
+    }
+
+    var drawStrategy = {
+      translation : {
+        get : function () {
+          var tx = 100, ty = 50, tz = -100;
+          return [
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            tx, ty, tz, 1
+          ];
+        }
+      },
+      scale1 : {
+        get : function () {
+          var a = 2, e = 3, i = 4;
+          return [
+            a, 0, 0, 0,
+            0, e, 0, 0,
+            0, 0, i, 0,
+            0, 0, 0, 1
+          ];
+        }
+      },
+      scale2 : {
+        get : function () {
+          var s = 2;
+          return [
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, s
+          ];
+        }
+      },
+      rotationX : {
+        get : function () {
+          var theta = Math.PI / 180 * 45;
+          return [
+            1, 0, 0, 0,
+            0, Math.cos(theta), Math.sin(theta), 0,
+            0, -Math.sin(theta), Math.cos(theta), 0,
+            0, 0, 0, 1
+          ];
+        }
+      },
+      rotationY : {
+        get : function () {
+          var theta = Math.PI / 180 * 45;
+          return [
+            Math.cos(theta), 0, Math.sin(theta), 0,
+            0, 1, 0, 0,
+            -Math.sin(theta), 0, Math.cos(theta), 0,
+            0, 0, 0, 1
+          ];
+        }
+      },
+      rotationZ : {
+        get : function () {
+          var theta = Math.PI / 180 * 45;
+          return [
+            Math.cos(theta), Math.sin(theta), 0, 0,
+            -Math.sin(theta), Math.cos(theta), 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1
+          ];
+        }
+      },
+      symmetryXOY : {
+        get : function () {
+          return [
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, -1, 0,
+            0, 0, 0, 1
+          ];
+        }
+      },
+      symmetryYOZ : {
+        get : function () {
+          return [
+            -1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1
+          ];
+        }
+      },
+      symmetryZOX : {
+        get : function () {
+          return [
+            1, 0, 0, 0,
+            0, -1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1
+          ];
+        }
+      },
+      symmetryX : {
+        get : function () {
+          return [
+            1, 0, 0, 0,
+            0, -1, 0, 0,
+            0, 0, -1, 0,
+            0, 0, 0, 1
+          ];
+        }
+      },
+      symmetryY : {
+        get : function () {
+          return [
+            -1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, -1, 0,
+            0, 0, 0, 1
+          ];
+        }
+      },
+      symmetryZ : {
+        get: function () {
+          return [
+            -1, 0, 0, 0,
+            0, -1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1
+          ];
+        }
+      }
+    };
+  </script>
+</div>
+
+<div id="btn">
+  <button onclick="draw('translation')">translation</button>
+
+  <button onclick="draw('scale1')">scale1</button>
+  <button onclick="draw('scale2')">scale2</button>
+
+  <button onclick="draw('rotationX')">rotationX</button>
+  <button onclick="draw('rotationY')">rotationY</button>
+  <button onclick="draw('rotationZ')">rotationZ</button>
+
+  <button onclick="draw('symmetryXOY')">symmetryXOY</button>
+  <button onclick="draw('symmetryYOZ')">symmetryYOZ</button>
+  <button onclick="draw('symmetryZOX')">symmetryZOX</button>
+
+  <button onclick="draw('symmetryX')">symmetryXOY</button>
+  <button onclick="draw('symmetryY')">symmetryYOZ</button>
+  <button onclick="draw('symmetryZ')">symmetryXOZ</button>
+</div>
+
+</body>
+</html>

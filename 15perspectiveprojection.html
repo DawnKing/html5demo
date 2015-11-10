@@ -38,7 +38,7 @@
       var canvas = document.getElementById("container");
       context = canvas.getContext("2d");
       context.translate(200, 200);
-      drawVertex(vertexData, "red");
+      drawVertex(indexData, vertexData, "red");
     }();
 
     function draw(strategyName) {
@@ -54,7 +54,7 @@
         result.push(p);
         console.log(strategyName, p.toString());
       }
-      drawVertex(result, "green");
+      drawVertex(indexData, result, "green");
     }
   </script>
 </div>

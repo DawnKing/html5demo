@@ -2,10 +2,6 @@ function isInt(n) {
   return Number(n) === n && n % 1 === 0;
 }
 
-function isFloat(n) {
-  return n === Number(n) && n % 1 !== 0;
-}
-
 function isPositiveInt(n) {
   return isInt(n) && n >= 0;
 }
@@ -68,7 +64,7 @@ function drawPolygon(context, polygon, strokeStyle, fillStyle) {
   context.beginPath();
 
   context.moveTo(polygon[0][0],polygon[0][1]);
-  for (i = 1; i < polygon.length; i++)
+  for (var i = 1; i < polygon.length; i++)
     context.lineTo(polygon[i][0],polygon[i][1]);
 
   context.closePath();
@@ -145,7 +141,7 @@ function matrix3DDotProductMatrix3D(a, b) {
   return result;
 }
 
-function drawVertex(vertexData, color) {
+function drawVertex(indexData, vertexData, color) {
   var drawList = [];
   for (var i = 0; i < indexData.length; i++) {
     drawList.push(vertexData[indexData[i]]);

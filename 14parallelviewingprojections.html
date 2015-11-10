@@ -34,16 +34,8 @@
       var canvas = document.getElementById("container");
       context = canvas.getContext("2d");
       context.translate(200, 200);
-      drawVertex(vertexData, "red");
+      drawVertex(indexData, vertexData, "red");
     }();
-
-    function drawVertex(vertexData, color) {
-      var drawList = [];
-      for (var i = 0; i < indexData.length; i++) {
-        drawList.push(vertexData[indexData[i]]);
-      }
-      drawPolygon(context, drawList, color);
-    }
 
     function draw(strategyName) {
       var canvas = document.getElementById("container");
@@ -61,7 +53,7 @@
         console.log(strategyName, p.toString());
       }
 
-      drawVertex(result, "green");
+      drawVertex(indexData, result, "green");
     }
 
     var drawStrategy = {

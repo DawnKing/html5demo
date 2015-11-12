@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>B-Spline Curve</title>
+  <script type="text/javascript" src="utils.js"></script>
+</head>
+<body>
+<canvas id="container" width="800" height="800"></canvas>
+<script>
+  var context, width, imgData, pixels;
+
+  draw();
+
+  // https://github.com/thibauts/b-spline
+  function draw() {
+    var canvas = document.getElementById("container");
+    context = canvas.getContext("2d");
+    width = canvas.attributes.width.value;
+    var height = canvas.attributes.height.value;
+    imgData = context.getImageData(0, 0, width, height);
+    pixels = imgData.data;
+
+    unclampedKnotVector();
+//    clampedKnotVector();
+//    closedCurves();
+//    nonuniformRational();
+  }
+
+  function unclampedKnotVector() {
+    var points = [
+      [-1.0,  0.0],
+      [-0.5,  0.5],
+      [ 0.5, -0.5],
+      [ 1.0,  0.0]
+    ];
+    var order = 3;
+    curve(order, points);
+  }
+
+  function clampedKnotVector() {
+    var points = [
+      [-1.0,  0.0],
+      [-0.5,  0.5],
+      [ 0.5, -0.5],
+      [ 1.0,  0.0]
+    ];
+    var order = 3;
+    var knots = [
+      0, 0, 0, 1, 2, 2, 2
+    ];
+    curve(order, points, knots);
+  }
+
+  function closedCurves() {
+    var points = [
+      [-1.0,  0.0],
+      [-0.5,  0.5],
+      [ 0.5, -0.5],
+      [ 1.0,  0.0],
+
+      [-1.0,  0.0],
+      [-0.5,  0.5],
+      [ 0.5, -0.5]
+    ];
+
+    var order = 3;
+
+// and using an unclamped knot vector
+
+    var knots = [
+      0, 1, 2, 3, 4, 5, 6, 7, 8, 9
+    ];
+
+    curve(order, points, knots);
+  }
+
+  function nonuniformRational() {
+    var points = [
+      [ 0.0, -0.5],
+      [-0.5, -0.5],
+
+      [-0.5,  0.0],
+      [-0.5,  0.5],
+
+      [ 0.0,  0.5],
+      [ 0.5,  0.5],
+
+      [ 0.5,  0.0],
+      [ 0.5, -0.5],
+      [ 0.0, -0.5]  // P0
+    ];
+
+// Here the curve is called non-uniform as the knots
+// are not equally spaced
+
+    var knots = [
+      0, 0, 0, 1/4, 1/4, 1/2, 1/2, 3/4, 3/4, 1, 1, 1
+    ];
+
+    var w = Math.pow(2, 0.5) / 2;
+
+// and rational as its control points have varying weights
+
+    var weights = [
+      1, w, 1, w, 1, w, 1, w, 1
+    ];
+    var order = 3;
+
+    curve(order, points, knots, weights);
+  }
+
+  function curve(order, points, knots, weights) {
+    for (var t = 0; t < 1; t += 0.001) {
+      var point = bspline(t, order, points, knots, weights);
+      point[0] = point[0] * 100 + 200;
+      point[1] = point[1] * 100 + 200;
+      drawPixel(parseInt(point[0]), parseInt(point[1]), width, pixels);
+      console.log(point.toString());
+    }
+    context.putImageData(imgData, 0, 0);
+  }
+
+  function bspline(t, order, points, knots, weights, result) {
+
+    var n = points.length;    // points count
+    var d = points[0].length; // point dimensionality
+
+    if(order < 2) throw new Error('order must be at least 2 (linear)');
+    if(order > n) throw new Error('order must be less than point count');
+
+    if(!weights) {
+      // build weight vector
+      weights = new Array(n);
+      for(var i=0; i<n; i++) {
+        weights[i] = 1;
+      }
+    }
+
+    if(!knots) {
+      // build knot vector
+      knots = new Array(n + order);
+      for(i=0; i<n+order; i++) {
+        knots[i] = i;
+      }
+    } else {
+      if(knots.length !== n+order) throw new Error('bad knot vector length');
+    }
+
+    var domain = [
+      order-1,
+      knots.length-1 - (order-1)
+    ];
+
+    // remap t to the domain where the spline is defined
+    var low  = knots[domain[0]];
+    var high = knots[domain[1]];
+    t = t * (high - low) + low;
+
+    if(t < low || t > high) throw new Error('out of bounds');
+
+    for(var s=domain[0]; s<domain[1]; s++) {
+      if(t >= knots[s] && t <= knots[s+1]) {
+        break;
+      }
+    }
+
+    // convert points to homogeneous coordinates
+    var v = new Array(n);
+    for(i=0; i<n; i++) {
+      v[i] = new Array(d + 1);
+      for(j=0; j<d; j++) {
+        v[i][j] = points[i][j] * weights[i];
+      }
+      v[i][d] = weights[i];
+    }
+
+    // l (level) goes from 1 to the curve order
+    for(var l=1; l<=order; l++) {
+      // build level l of the pyramid
+      for(i=s; i>s-order+l; i--) {
+        var a = (t - knots[i]) / (knots[i+order-l] - knots[i]);
+
+        // interpolate each component
+        for(var j=0; j<d+1; j++) {
+          v[i][j] = (1 - a) * v[i-1][j] + a * v[i][j];
+        }
+      }
+    }
+
+    // convert back to cartesian and return
+    result = result || new Array(d);
+    for(i=0; i<d; i++) {
+      result[i] = v[s][i] / v[s][d];
+    }
+
+    return result;
+  }
+</script>
+</body>
+</html>

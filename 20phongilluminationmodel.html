@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Phong Illumination Model</title>
+  <script type="text/javascript" src="utils.js"></script>
+  <script type="text/javascript" src="20phongilluminationmodel.js"></script>
+</head>
+<body>
+<canvas id="container" width="400" height="400"></canvas>
+<script>
+  // global temp
+  var lightDir = new Vector3(-1, 1, 1).normalize();
+  var lightColor = Color.white;
+
+  draw();
+  // http://www.cnblogs.com/miloyip/archive/2010/03/29/1698953.html
+  function draw() {
+    var canvas = document.getElementById("container");
+    var context = canvas.getContext("2d");
+    var width = canvas.attributes.width.value;
+    var height = canvas.attributes.height.value;
+    var imgData = context.getImageData(0, 0, width, height);
+    var pixels = imgData.data;
+
+    var plane = new Plane(new Vector3(0, 1, 0), 0);
+    plane.material = new CheckerMaterial(0.1);
+    var sphere = new Sphere(new Vector3(5, 10, -10), 10);
+    sphere.material = new PhongMaterial(Color.red, Color.white, 16);
+    var scene = new Union([plane, sphere]);
+    var camera = new PerspectiveCamera(new Vector3(0, 10, 10), new Vector3(0, 0, -1), new Vector3(0, 1, 0), 90);
+
+    scene.initialize();
+    camera.initialize();
+
+    var i = 0;
+    for (var y = 0; y < height; y++) {
+      var sy = 1 - y / height;
+      for (var x = 0; x < width; x++) {
+        var sx = x / width;
+        var ray = camera.generateRay(sx, sy);
+        var result = scene.intersect(ray);
+        if (result.geometry) {
+          var color = result.geometry.material.sample(ray, result.position, result.normal);
+          pixels[i] = color.r * 255;
+          pixels[i + 1] = color.g * 255;
+          pixels[i + 2] = color.b * 255;
+          pixels[i + 3] = 255;
+        }
+        i += 4;
+      }
+    }
+    context.putImageData(imgData, 0, 0);
+  }
+</script>
+</body>
+</html>

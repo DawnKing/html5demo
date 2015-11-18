@@ -203,7 +203,7 @@ PhongMaterial = function(diffuse, specular, shininess, reflectiveness) {
   this.diffuse = diffuse;
   this.specular = specular;
   this.shininess = shininess;
-  this.relfectiveness = reflectiveness;
+  this.reflectiveness = reflectiveness;
 };
 
 PhongMaterial.prototype = {

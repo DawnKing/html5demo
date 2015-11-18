@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Ray Trace</title>
+  <script type="text/javascript" src="utils.js"></script>
+  <script type="text/javascript" src="20phongilluminationmodel.js"></script>
+</head>
+<body>
+<canvas id="container" width="400" height="400"></canvas>
+<script>
+  // global temp
+  var lightDir = new Vector3(-1, 1, 1).normalize();
+  var lightColor = Color.white;
+  var maxReflect = 3;
+
+  draw();
+  // http://www.cnblogs.com/miloyip/archive/2010/03/29/1698953.html
+  function draw() {
+    var canvas = document.getElementById("container");
+    var context = canvas.getContext("2d");
+    var width = canvas.attributes.width.value;
+    var height = canvas.attributes.height.value;
+    var imgData = context.getImageData(0, 0, width, height);
+    var pixels = imgData.data;
+
+    var plane = new Plane(new Vector3(0, 1, 0), 0);
+    plane.material = new CheckerMaterial(0.1, 0.5);
+    var sphere = new Sphere(new Vector3(5, 10, -10), 10);
+    sphere.material = new PhongMaterial(Color.red, Color.white, 16, 0.25);
+
+    var scene = new Union([plane, sphere]);
+    var camera = new PerspectiveCamera(new Vector3(0, 5, 15), new Vector3(0, 0, -1), new Vector3(0, 1, 0), 90);
+
+    scene.initialize();
+    camera.initialize();
+
+    var i = 0;
+    for (var y = 0; y < height; y++) {
+      var sy = 1 - y / height;
+      for (var x = 0; x < width; x++) {
+        var sx = x / width;
+        var ray = camera.generateRay(sx, sy);
+        var color = rayTraceRecursive(scene, ray, maxReflect);
+        pixels[i++] = color.r * 255;
+        pixels[i++] = color.g * 255;
+        pixels[i++] = color.b * 255;
+        pixels[i++] = 255;
+      }
+    }
+    context.putImageData(imgData, 0, 0);
+  }
+
+  function rayTraceRecursive(scene, ray, maxReflect) {
+    var result = scene.intersect(ray);
+
+    if (result.geometry) {
+      var reflectiveness = result.geometry.material.reflectiveness;
+      var color = result.geometry.material.sample(ray, result.position, result.normal);
+      color = color.multiply(1 - reflectiveness);
+
+      if (reflectiveness > 0 && maxReflect > 0) {
+        var r = result.normal.multiply(-2 * result.normal.dot(ray.direction)).add(ray.direction);
+        ray = new Ray3(result.position, r);
+        var reflectedColor = rayTraceRecursive(scene, ray, maxReflect - 1);
+        color = color.add(reflectedColor.multiply(reflectiveness));
+      }
+      return color;
+    } else {
+      return Color.black;
+    }
+  }
+</script>
+</body>
+</html>

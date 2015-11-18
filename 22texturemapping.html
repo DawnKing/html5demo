@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Texture Mapping</title>
+  <script type="text/javascript" src="utils.js"></script>
+</head>
+<body>
+<img src="200511217168793.jpg" id="img" onload="draw()">
+<canvas id="container" width="400" height="400"></canvas>
+<script>
+//  var vertexData = [
+//    [200, 100, 5, 0, 0], // x, y, z, s, t
+//    [50, 200, 1, 0, 300],
+//    [350, 200, 1, 300, 300]
+//  ];
+
+  var vertexData = [
+    [200, 100, 1, 300, 100], // x, y, z, s, t
+    [50, 200, 1, 100, 300],
+    [350, 200, 1, 500, 300]
+  ];
+
+  // http://blog.csdn.net/popy007/article/details/5570803
+  function draw() {
+    var canvas = document.getElementById("container");
+    var context = canvas.getContext("2d");
+    var width = canvas.width;
+    var height = canvas.height;
+
+    var img = document.getElementById("img");
+    context.drawImage(img, 0, 0);
+    var imgData = context.getImageData(0, 0, width, height);
+    var pixels = imgData.data;
+//    img.parentNode.removeChild(img);
+
+    var minY = Infinity, maxY = -Infinity;
+    for (var i = 0; i < vertexData.length; i++) {
+      if (vertexData[i][1] > maxY)
+        maxY = vertexData[i][1];
+      if (vertexData[i][1] < minY)
+        minY = vertexData[i][1];
+    }
+
+    var resultImgData = context.createImageData(width, height);
+    var result = resultImgData.data;
+    for (var y = minY; y < maxY; y++) {
+      var x0 = vertexData[0][0];
+      var y0 = vertexData[0][1];
+      var z0 = vertexData[0][2];
+      var s0 = vertexData[0][3];
+      var t0 = vertexData[0][4];
+      var x1 = vertexData[1][0];
+      var y1 = vertexData[1][1];
+      var z1 = vertexData[1][2];
+      var s1 = vertexData[1][3];
+      var t1 = vertexData[1][4];
+      var x2 = vertexData[2][0];
+      var y2 = vertexData[2][1];
+      var z2 = vertexData[2][2];
+      var s2 = vertexData[2][3];
+      var t2 = vertexData[2][4];
+
+      var xLeft = (y - y0) / (y1 - y0) * (x1 - x0) + x0;
+      var xRight = (y - y0) / (y2 - y0) * (x2 - x0) + x0;
+
+      var zTop = 1.0 / z0;
+      var zBottom1 = 1.0 / z1;
+      var zBottom2 = 1.0 / z2;
+      var zLeft = (y - y0) * (zBottom1 - zTop) / (y1 - y0) + zTop;
+      var zRight = (y - y0) * (zBottom2 - zTop) / (y2 - y0) + zTop;
+      var zStep = (zRight - zLeft) / (xRight - xLeft);
+
+      var sTop = s0 / z0;
+      var sBottom1 = s1 / z1;
+      var sBottom2 = s2 / z2;
+      var sLeft = (y - y0) * (sBottom1 - sTop) / (y1 - y0) + sTop;
+      var sRight = (y - y0) * (sBottom2 - sTop) / (y2 - y0) + sTop;
+      var sStep = (sRight - sLeft) / (xRight - xLeft);
+
+      var tTop = t0 / z0;
+      var tBottom1 = t1 / z1;
+      var tBottom2 = t2 / z2;
+      var tLeft = (y - y0) * (tBottom1 - tTop) / (y1 - y0) + tTop;
+      var tRight = (y - y0) * (tBottom2 - tTop) / (y2 - y0) + tTop;
+      var tStep = (tRight - tLeft) / (xRight - xLeft);
+
+      for (var x = xLeft, z = zLeft, s = sLeft, t = tLeft;
+           x < xRight;
+           x++, z += zStep, s += sStep, t += tStep)
+      {
+        var tempS = parseInt(s / z);
+        var tempT = parseInt(t / z);
+        var index = (tempS + tempT * width) * 4;
+        if (x < 0 || y < 0)
+          continue;
+        drawPixel(parseInt(x), parseInt(y), width, result, pixels.slice(index, index+4))
+      }
+    }
+
+    context.putImageData(resultImgData, 0, 0);
+    context.strokeStyle = "rgba(255, 0, 0, 1.0)";
+    context.strokeRect(0, 0, width, height);
+  }
+</script>
+</body>
+</html>

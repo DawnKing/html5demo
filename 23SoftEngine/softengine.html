@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+  <meta charset="UTF-8">
+  <title>3D Soft Engine</title>
+
+  <script src="babylon.math.js"></script>
+  <script src="soft.device.js"></script>
+  <script src="soft.wireFrame.js"></script>
+  <script src="soft.rasterization.js"></script>
+  <script src="soft.flatShading.js"></script>
+  <script src="soft.gouraudShading.js"></script>
+  <script src="soft.applyingTexture.js"></script>
+</head>
+<body>
+<canvas id="frontBuffer" width="640" height="480" style="background-color: black;"></canvas>
+<script>
+  window.requestAnimationFrame = (function () {
+    return window.requestAnimationFrame ||
+      window.webkitRequestAnimationFrame ||
+      window.mozRequestAnimationFrame ||
+      function (callback) {
+        window.setTimeout(callback, 1000 / 60);
+      };
+  })();
+
+  var canvas;
+  var device;
+  var meshes = [];
+  var camera;
+  var reloading = true;
+
+  document.addEventListener("DOMContentLoaded", init, false);
+
+  // http://david.blob.core.windows.net/html5/SoftEngineProgression/wireframe/index.html
+  function init() {
+    canvas = document.getElementById("frontBuffer");
+    device = new SoftEngine.Device(canvas);
+    device.LoadJSONFileAsync("monkey.babylon", loadJSONCompleted);
+
+    camera = new SoftEngine.Camera();
+    camera.Position = new BABYLON.Vector3(0, 0, 10);
+    camera.Target = new BABYLON.Vector3(0, 0, 0);
+  }
+
+  function loadJSONCompleted(meshesLoaded) {
+    meshes = meshesLoaded;
+    for (var i = 0; i < meshes.length; i++) {
+      meshes[i].Rotation.y = 3.14;
+    }
+    // Calling the HTML5 rendering loop
+    requestAnimationFrame(drawingLoop);
+    reloading = false;
+  }
+
+  // Rendering loop handler
+  function drawingLoop() {
+    if (reloading)
+      return;
+    device.clear();
+
+    for (var i = 0; i < meshes.length; i++) {
+      meshes[i].Rotation.y += 0.01;
+    }
+
+    // Doing the various matrix operations
+    device.render(camera, meshes);
+    // Flushing the back buffer into the front buffer
+    device.present();
+
+    // Calling the HTML5 rendering loop recursively
+    requestAnimationFrame(drawingLoop);
+  }
+
+  function changeRender(cla, asset) {
+    device = new cla(canvas);
+    reloading = true;
+    if (asset == undefined)
+      asset = "monkey.babylon";
+    device.LoadJSONFileAsync(asset, loadJSONCompleted);
+  }
+</script>
+<button onclick="changeRender(SoftEngine.WireFrame)">Wire Frame</button>
+<button onclick="changeRender(SoftEngine.Rasterization)">Rasterization</button>
+<button onclick="changeRender(SoftEngine.FlatShading)">Flat Shading</button>
+<button onclick="changeRender(SoftEngine.GouraudShading)">Gouraud Shading</button>
+<button onclick="changeRender(SoftEngine.ApplyingTexture, 'monkey_texture.babylon')">Applying Texture</button>
+</body>
+</html>
